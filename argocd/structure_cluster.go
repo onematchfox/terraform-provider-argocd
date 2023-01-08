@@ -4,14 +4,18 @@ import (
 	"fmt"
 
 	application "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 // Expand
 
-func expandCluster(d *schema.ResourceData) (*application.Cluster, error) {
+func expandCluster(d *schema.ResourceData) (
+	cluster *application.Cluster,
+	diags diag.Diagnostics,
+) {
 	var err error
-	cluster := &application.Cluster{}
+	cluster = &application.Cluster{}
 	if v, ok := d.GetOk("name"); ok {
 		cluster.Name = v.(string)
 	}
@@ -21,13 +25,21 @@ func expandCluster(d *schema.ResourceData) (*application.Cluster, error) {
 	if v, ok := d.GetOk("shard"); ok {
 		cluster.Shard, err = convertStringToInt64Pointer(v.(string))
 		if err != nil {
-			return nil, err
+			return nil, append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Cluster shard is invalid",
+				Detail:   fmt.Errorf("cluster shared invalid: %s", err).Error(),
+			})
 		}
 	}
 	if ns, ok := d.GetOk("namespaces"); ok {
 		for _, n := range ns.([]interface{}) {
 			if n == nil {
-				return nil, fmt.Errorf("namespaces: must contain non-empty strings")
+				return nil, append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Cluster namespaces are invalid",
+					Detail:   fmt.Errorf("namespaces: must contain non-empty strings").Error(),
+				})
 			}
 			cluster.Namespaces = append(cluster.Namespaces, n.(string))
 		}
@@ -36,7 +48,10 @@ func expandCluster(d *schema.ResourceData) (*application.Cluster, error) {
 		cluster.Config = expandClusterConfig(v.([]interface{})[0])
 	}
 
-	m := expandMetadata(d)
+	m, diags := expandMetadata(d)
+	if len(diags) > 0 {
+		return nil, diags
+	}
 	cluster.Annotations = m.Annotations
 	cluster.Labels = m.Labels
 
@@ -44,11 +59,12 @@ func expandCluster(d *schema.ResourceData) (*application.Cluster, error) {
 		cluster.Project = v.(string)
 	}
 
-	return cluster, err
+	return
 }
 
 func expandClusterConfig(config interface{}) (
-	clusterConfig application.ClusterConfig) {
+	clusterConfig application.ClusterConfig,
+) {
 	c := config.(map[string]interface{})
 	if aws, ok := c["aws_auth_config"].([]interface{}); ok && len(aws) > 0 {
 		clusterConfig.AWSAuthConfig = &application.AWSAuthConfig{}
@@ -198,7 +214,8 @@ func flattenClusterConfigTLSClientConfig(stateClusterConfig application.ClusterC
 }
 
 func flattenClusterConfigExecProviderConfig(epc *application.ExecProviderConfig) (
-	result []map[string]interface{}) {
+	result []map[string]interface{},
+) {
 	if epc != nil {
 		result = []map[string]interface{}{
 			{

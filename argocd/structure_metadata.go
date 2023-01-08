@@ -5,20 +5,33 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func expandMetadata(d *schema.ResourceData) (
-	meta meta.ObjectMeta) {
-
+	meta meta.ObjectMeta,
+	diags diag.Diagnostics,
+) {
 	m := d.Get("metadata.0").(map[string]interface{})
 
 	if v, ok := m["annotations"].(map[string]interface{}); ok && len(v) > 0 {
-		meta.Annotations = expandStringMap(m["annotations"].(map[string]interface{}))
+		meta.Annotations = expandStringMap(v)
+	}
+	if v, ok := m["finalizers"]; ok {
+		meta.Finalizers = expandStringList(v.(*schema.Set).List())
+
+		if _, err := validateFinalizers(meta.Finalizers, "finalizers"); err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Finalizers are invalid",
+				Detail:   fmt.Errorf("finalizers invalid: %s", err).Error(),
+			})
+		}
 	}
 	if v, ok := m["labels"].(map[string]interface{}); ok && len(v) > 0 {
-		meta.Labels = expandStringMap(m["labels"].(map[string]interface{}))
+		meta.Labels = expandStringMap(v)
 	}
 	if v, ok := m["name"]; ok {
 		meta.Name = v.(string)
@@ -26,13 +39,7 @@ func expandMetadata(d *schema.ResourceData) (
 	if v, ok := m["namespace"]; ok {
 		meta.Namespace = v.(string)
 	}
-	if v, ok := m["finalizers"]; ok {
-		meta.Finalizers = expandStringList(v.([]interface{}))
-		if meta.Finalizers == nil {
-			meta.Finalizers = []string{}
-		}
-	}
-	return meta
+	return meta, diags
 }
 
 func flattenMetadata(meta meta.ObjectMeta, d *schema.ResourceData) []interface{} {

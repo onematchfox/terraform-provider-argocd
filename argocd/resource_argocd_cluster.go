@@ -35,16 +35,9 @@ func resourceArgoCDClusterCreate(ctx context.Context, d *schema.ResourceData, me
 		}
 	}
 	client := *server.ClusterClient
-	cluster, err := expandCluster(d)
-	if err != nil {
-		return []diag.Diagnostic{
-			{
-				Severity: diag.Error,
-				Summary:  fmt.Sprintf("could not expand cluster attributes: %s", err),
-				Detail:   err.Error(),
-			},
-		}
-
+	cluster, diags := expandCluster(d)
+	if len(diags) > 0 {
+		return diags
 	}
 
 	featureProjectScopedClustersSupported, err := server.isFeatureSupported(featureProjectScopedClusters)
@@ -204,15 +197,9 @@ func resourceArgoCDClusterUpdate(ctx context.Context, d *schema.ResourceData, me
 		}
 	}
 	client := *server.ClusterClient
-	cluster, err := expandCluster(d)
-	if err != nil {
-		return []diag.Diagnostic{
-			{
-				Severity: diag.Error,
-				Summary:  fmt.Sprintf("could not expand cluster attributes: %s", err),
-				Detail:   err.Error(),
-			},
-		}
+	cluster, diags := expandCluster(d)
+	if len(diags) > 0 {
+		return diags
 	}
 
 	featureProjectScopedClustersSupported, err := server.isFeatureSupported(featureProjectScopedClusters)

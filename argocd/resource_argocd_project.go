@@ -43,16 +43,11 @@ func resourceArgoCDProject() *schema.Resource {
 }
 
 func resourceArgoCDProjectCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	objectMeta, spec, err := expandProject(d)
-	if err != nil {
-		return []diag.Diagnostic{
-			{
-				Severity: diag.Error,
-				Summary:  fmt.Sprintf("project %s could not be created", d.Id()),
-				Detail:   err.Error(),
-			},
-		}
+	objectMeta, spec, diags := expandProject(d)
+	if len(diags) > 0 {
+		return diags
 	}
+
 	server := meta.(*ServerInterface)
 	if err := server.initClients(); err != nil {
 		return []diag.Diagnostic{
@@ -204,16 +199,11 @@ func resourceArgoCDProjectRead(ctx context.Context, d *schema.ResourceData, meta
 
 func resourceArgoCDProjectUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	if ok := d.HasChanges("metadata", "spec"); ok {
-		objectMeta, spec, err := expandProject(d)
-		if err != nil {
-			return []diag.Diagnostic{
-				{
-					Severity: diag.Error,
-					Summary:  fmt.Sprintf("project %s could not be updated", d.Id()),
-					Detail:   err.Error(),
-				},
-			}
+		objectMeta, spec, diags := expandProject(d)
+		if len(diags) > 0 {
+			return diags
 		}
+
 		server := meta.(*ServerInterface)
 		if err := server.initClients(); err != nil {
 			return []diag.Diagnostic{

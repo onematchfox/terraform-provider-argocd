@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	application "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -14,15 +15,21 @@ import (
 func expandProject(d *schema.ResourceData) (
 	metadata meta.ObjectMeta,
 	spec application.AppProjectSpec,
-	err error) {
-	metadata = expandMetadata(d)
-	spec, err = expandProjectSpec(d)
+	diags diag.Diagnostics,
+) {
+	metadata, diags = expandMetadata(d)
+	if len(diags) > 0 {
+		return
+	}
+
+	spec, diags = expandProjectSpec(d)
 	return
 }
 
 func expandProjectRoles(roles []interface{}) (
 	projectRoles []application.ProjectRole,
-	err error) {
+	err error,
+) {
 	for _, _r := range roles {
 		r := _r.(map[string]interface{})
 
@@ -44,8 +51,8 @@ func expandProjectRoles(roles []interface{}) (
 
 func expandProjectSpec(d *schema.ResourceData) (
 	spec application.AppProjectSpec,
-	err error) {
-
+	diags diag.Diagnostics,
+) {
 	s := d.Get("spec.0").(map[string]interface{})
 
 	if v, ok := s["description"]; ok {
@@ -105,14 +112,24 @@ func expandProjectSpec(d *schema.ResourceData) (
 		spec.SyncWindows = expandSyncWindows(v.([]interface{}))
 	}
 	if v, ok := s["role"]; ok {
-		spec.Roles, err = expandProjectRoles(v.([]interface{}))
+		roles, err := expandProjectRoles(v.([]interface{}))
 		if err != nil {
-			return spec, err
+			return spec, append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Roles are invalid",
+				Detail:   fmt.Errorf("roles invalid: %s", err).Error(),
+			})
 		}
+
+		spec.Roles = roles
 		for _, r := range spec.Roles {
 			for _, p := range r.Policies {
 				if err := validatePolicy(d.Get("metadata.0.name").(string), r.Name, p); err != nil {
-					return spec, err
+					return spec, append(diags, diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Role policies are invalid",
+						Detail:   fmt.Errorf("role policies invalid: %s", err).Error(),
+					})
 				}
 			}
 		}
@@ -121,7 +138,8 @@ func expandProjectSpec(d *schema.ResourceData) (
 }
 
 func expandOrphanedResourcesIgnore(ignore *schema.Set) (
-	result []application.OrphanedResourceKey) {
+	result []application.OrphanedResourceKey,
+) {
 	for _, _i := range ignore.List() {
 		i := _i.(map[string]interface{})
 		result = append(result, application.OrphanedResourceKey{
@@ -169,7 +187,8 @@ func flattenProjectSpec(s application.AppProjectSpec) []map[string]interface{} {
 }
 
 func flattenProjectSignatureKeys(keys []application.SignatureKey) (
-	result []string) {
+	result []string,
+) {
 	for _, key := range keys {
 		result = append(result, key.KeyID)
 	}
@@ -177,7 +196,8 @@ func flattenProjectSignatureKeys(keys []application.SignatureKey) (
 }
 
 func flattenProjectOrphanedResources(ors *application.OrphanedResourcesMonitorSettings) (
-	result []map[string]interface{}) {
+	result []map[string]interface{},
+) {
 	r := make(map[string]interface{}, 0)
 	if ors != nil {
 		if ors.Warn != nil {
@@ -192,7 +212,8 @@ func flattenProjectOrphanedResources(ors *application.OrphanedResourcesMonitorSe
 }
 
 func flattenProjectOrphanedResourcesIgnore(ignore []application.OrphanedResourceKey) (
-	result []map[string]string) {
+	result []map[string]string,
+) {
 	for _, i := range ignore {
 		result = append(result, map[string]string{
 			"group": i.Group,
@@ -204,7 +225,8 @@ func flattenProjectOrphanedResourcesIgnore(ignore []application.OrphanedResource
 }
 
 func flattenProjectRoles(rs []application.ProjectRole) (
-	result []map[string]interface{}) {
+	result []map[string]interface{},
+) {
 	for _, r := range rs {
 		result = append(result, map[string]interface{}{
 			"name":        r.Name,

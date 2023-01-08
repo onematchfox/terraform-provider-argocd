@@ -15,33 +15,21 @@ import (
 func expandApplication(d *schema.ResourceData) (
 	metadata meta.ObjectMeta,
 	spec application.ApplicationSpec,
-	diags diag.Diagnostics) {
+	diags diag.Diagnostics,
+) {
+	metadata, diags = expandMetadata(d)
+	if len(diags) > 0 {
+		return
+	}
 
-	metadata = expandMetadata(d)
 	spec, diags = expandApplicationSpec(d)
-	if len(diags) == 0 {
-		diags = diagnoseFinalizers(d)
-	}
 	return
-}
-
-func diagnoseFinalizers(d *schema.ResourceData) diag.Diagnostics {
-	finalizerKey := "metadata.0.finalizers"
-	finalizers := d.Get(finalizerKey)
-	if _, err := validateFinalizers(finalizers, finalizerKey); err != nil {
-		return []diag.Diagnostic{{
-			Severity: diag.Error,
-			Summary:  "Finalizers are invalid",
-			Detail:   fmt.Errorf("finalizers invalid: %s", err).Error(),
-		}}
-	}
-	return nil
 }
 
 func expandApplicationSpec(d *schema.ResourceData) (
 	spec application.ApplicationSpec,
-	diags diag.Diagnostics) {
-
+	diags diag.Diagnostics,
+) {
 	s := d.Get("spec.0").(map[string]interface{})
 
 	if v, ok := s["project"]; ok {
@@ -76,7 +64,8 @@ func expandApplicationSpec(d *schema.ResourceData) (
 }
 
 func expandApplicationSource(_as interface{}) (
-	result application.ApplicationSource) {
+	result application.ApplicationSource,
+) {
 	as := _as.(map[string]interface{})
 	if v, ok := as["repo_url"]; ok {
 		result.RepoURL = v.(string)
@@ -258,10 +247,10 @@ func expandApplicationSyncPolicy(_sp []interface{}) (*application.SyncPolicy, di
 	if sp == nil {
 		return &application.SyncPolicy{}, nil
 	}
-	var automated = &application.SyncPolicyAutomated{}
+	automated := &application.SyncPolicyAutomated{}
 	var syncOptions application.SyncOptions
-	var retry = &application.RetryStrategy{}
-	var syncPolicy = &application.SyncPolicy{}
+	retry := &application.RetryStrategy{}
+	syncPolicy := &application.SyncPolicy{}
 
 	if a, ok := sp.(map[string]interface{})["automated"].(map[string]interface{}); ok {
 		if len(a) > 0 {
@@ -339,10 +328,11 @@ func expandApplicationSyncPolicy(_sp []interface{}) (*application.SyncPolicy, di
 }
 
 func expandApplicationIgnoreDifferences(ids []interface{}) (
-	result []application.ResourceIgnoreDifferences) {
+	result []application.ResourceIgnoreDifferences,
+) {
 	for _, _id := range ids {
 		id := _id.(map[string]interface{})
-		var elem = application.ResourceIgnoreDifferences{}
+		elem := application.ResourceIgnoreDifferences{}
 		if v, ok := id["group"]; ok {
 			elem.Group = v.(string)
 		}
@@ -373,7 +363,8 @@ func expandApplicationIgnoreDifferences(ids []interface{}) (
 }
 
 func expandApplicationInfo(infos *schema.Set) (
-	result []application.Info, diags diag.Diagnostics) {
+	result []application.Info, diags diag.Diagnostics,
+) {
 	for _, i := range infos.List() {
 		item := i.(map[string]interface{})
 		info := application.Info{}
@@ -402,7 +393,8 @@ func expandApplicationInfo(infos *schema.Set) (
 }
 
 func expandApplicationDestination(dest interface{}) (
-	result application.ApplicationDestination) {
+	result application.ApplicationDestination,
+) {
 	d, ok := dest.(map[string]interface{})
 	if !ok {
 		panic(fmt.Errorf("could not expand application destination"))
@@ -435,7 +427,8 @@ func flattenApplication(app *application.Application, d *schema.ResourceData) er
 
 func flattenApplicationSpec(s application.ApplicationSpec) (
 	[]map[string]interface{},
-	error) {
+	error,
+) {
 	spec := map[string]interface{}{
 		"destination": flattenApplicationDestinations(
 			[]application.ApplicationDestination{s.Destination},
@@ -490,7 +483,8 @@ func flattenApplicationSyncPolicy(sp *application.SyncPolicy) []map[string]inter
 }
 
 func flattenApplicationInfo(infos []application.Info) (
-	result []map[string]string) {
+	result []map[string]string,
+) {
 	for _, i := range infos {
 		info := map[string]string{}
 
@@ -507,7 +501,8 @@ func flattenApplicationInfo(infos []application.Info) (
 }
 
 func flattenApplicationIgnoreDifferences(ids []application.ResourceIgnoreDifferences) (
-	result []map[string]interface{}) {
+	result []map[string]interface{},
+) {
 	for _, id := range ids {
 		result = append(result, map[string]interface{}{
 			"group":               id.Group,
@@ -522,7 +517,8 @@ func flattenApplicationIgnoreDifferences(ids []application.ResourceIgnoreDiffere
 }
 
 func flattenApplicationSource(source []application.ApplicationSource) (
-	result []map[string]interface{}) {
+	result []map[string]interface{},
+) {
 	for _, s := range source {
 		result = append(result, map[string]interface{}{
 			"chart": s.Chart,
@@ -547,7 +543,8 @@ func flattenApplicationSource(source []application.ApplicationSource) (
 }
 
 func flattenApplicationSourcePlugin(as []*application.ApplicationSourcePlugin) (
-	result []map[string]interface{}) {
+	result []map[string]interface{},
+) {
 	for _, a := range as {
 		if a != nil {
 			var env []map[string]string
@@ -567,7 +564,8 @@ func flattenApplicationSourcePlugin(as []*application.ApplicationSourcePlugin) (
 }
 
 func flattenApplicationSourceDirectory(as []*application.ApplicationSourceDirectory) (
-	result []map[string]interface{}) {
+	result []map[string]interface{},
+) {
 	for _, a := range as {
 		if a != nil {
 			jsonnet := make(map[string][]interface{}, 0)
@@ -599,7 +597,8 @@ func flattenApplicationSourceDirectory(as []*application.ApplicationSourceDirect
 }
 
 func flattenApplicationSourceKustomize(as []*application.ApplicationSourceKustomize) (
-	result []map[string]interface{}) {
+	result []map[string]interface{},
+) {
 	for _, a := range as {
 		if a != nil {
 			var images []string
@@ -620,7 +619,8 @@ func flattenApplicationSourceKustomize(as []*application.ApplicationSourceKustom
 }
 
 func flattenApplicationSourceHelm(as []*application.ApplicationSourceHelm) (
-	result []map[string]interface{}) {
+	result []map[string]interface{},
+) {
 	for _, a := range as {
 		if a != nil {
 			var parameters []map[string]interface{}
@@ -644,7 +644,8 @@ func flattenApplicationSourceHelm(as []*application.ApplicationSourceHelm) (
 }
 
 func flattenApplicationDestinations(ds []application.ApplicationDestination) (
-	result []map[string]string) {
+	result []map[string]string,
+) {
 	for _, d := range ds {
 		result = append(result, map[string]string{
 			"namespace": d.Namespace,

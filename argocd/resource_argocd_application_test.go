@@ -425,12 +425,13 @@ func TestAccArgoCDApplication_Recurse(t *testing.T) {
 }
 
 func TestAccArgoCDApplication_Finalizers(t *testing.T) {
+	app := acctest.RandomWithPrefix("test-acc")
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccArgoCDApplicationSimple(acctest.RandomWithPrefix("test-acc")),
+				Config: testAccArgoCDApplicationSimple(app),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckModuleResourceAttrNotSet(
 						"argocd_application.simple",
@@ -439,7 +440,13 @@ func TestAccArgoCDApplication_Finalizers(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccArgoCDApplicationSimpleFinalizers(acctest.RandomWithPrefix("test-acc"), "[]"),
+				ResourceName:            "argocd_application.simple",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"wait", "cascade"},
+			},
+			{
+				Config: testAccArgoCDApplicationSimpleFinalizers(app, "[]"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"argocd_application.simple",
@@ -449,7 +456,13 @@ func TestAccArgoCDApplication_Finalizers(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccArgoCDApplicationSimpleFinalizers(acctest.RandomWithPrefix("test-acc"), "[\"resources-finalizer.argocd.argoproj.io\"]"),
+				ResourceName:            "argocd_application.simple",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"wait", "cascade"},
+			},
+			{
+				Config: testAccArgoCDApplicationSimpleFinalizers(app, "[\"resources-finalizer.argocd.argoproj.io\"]"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"argocd_application.simple",
@@ -464,7 +477,13 @@ func TestAccArgoCDApplication_Finalizers(t *testing.T) {
 				),
 			},
 			{
-				Config:      testAccArgoCDApplicationSimpleFinalizers(acctest.RandomWithPrefix("test-acc"), "[\"malform/form-ed/.argocd.argoproj.io\"]"),
+				ResourceName:            "argocd_application.simple",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"wait", "cascade"},
+			},
+			{
+				Config:      testAccArgoCDApplicationSimpleFinalizers(app, "[\"malform/form-ed/.argocd.argoproj.io\"]"),
 				ExpectError: regexp.MustCompile(".*Error: Finalizers are invalid.*"),
 			},
 		},

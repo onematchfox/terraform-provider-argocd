@@ -28,10 +28,11 @@ func metadataFields(objectName string) map[string]*schema.Schema {
 			ValidateFunc: validateMetadataAnnotations,
 		},
 		"finalizers": {
-			Type:         schema.TypeList,
-			Description:  "Any finalizers to put on the object at creation time",
-			Optional:     true,
-			Elem:         &schema.Schema{Type: schema.TypeString},
+			Type:        schema.TypeSet,
+			Set:         schema.HashString,
+			Description: fmt.Sprintf("List of finalizers to put on the %s. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/finalizers/", objectName),
+			Optional:    true,
+			Elem:        &schema.Schema{Type: schema.TypeString},
 		},
 		"generation": {
 			Type:        schema.TypeInt,
