@@ -19,6 +19,15 @@ var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServe
 	"argocd": providerserver.NewProtocol6WithError(New("test")),
 }
 
+func providerV5() map[string]resource.ExternalProvider {
+	return map[string]resource.ExternalProvider{
+		"argocd": {
+			VersionConstraint: "~> 5.0",
+			Source:            "oboukili/argocd",
+		},
+	}
+}
+
 func TestProvider_headers(t *testing.T) {
 	t.Parallel()
 

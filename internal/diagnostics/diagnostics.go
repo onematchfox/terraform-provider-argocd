@@ -10,7 +10,7 @@ import (
 func ArgoCDAPIError(action, resource, id string, err error) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	diags.AddError(fmt.Sprintf("failed to %s %s %s", action, resource, id), err.Error())
+	diags.AddError(fmt.Sprintf("Failed to %s %s %s", action, resource, id), err.Error())
 
 	return diags
 }

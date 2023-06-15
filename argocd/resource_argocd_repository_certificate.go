@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/oboukili/terraform-provider-argocd/internal/provider"
+	"github.com/oboukili/terraform-provider-argocd/internal/sync"
 )
 
 type (
@@ -33,7 +34,7 @@ func resourceArgoCDRepositoryCertificatesCreate(ctx context.Context, d *schema.R
 	}
 
 	// Not doing a RLock here because we can have a race-condition between the ListCertificates & CreateCertificate
-	tokenMutexConfiguration.Lock()
+	sync.ConfigurationMutex.Lock()
 
 	repoCertificate := expandRepositoryCertificate(d)
 
@@ -44,13 +45,13 @@ func resourceArgoCDRepositoryCertificatesCreate(ctx context.Context, d *schema.R
 			CertSubType:     repoCertificate.CertSubType,
 		})
 		if err != nil {
-			tokenMutexConfiguration.Unlock()
+			sync.ConfigurationMutex.Unlock()
 
 			return errorToDiagnostics(fmt.Sprintf("failed to list existing repository certificates when creating certificate for %s", repoCertificate.ServerName), err)
 		}
 
 		if len(rcl.Items) > 0 {
-			tokenMutexConfiguration.Unlock()
+			sync.ConfigurationMutex.Unlock()
 
 			return []diag.Diagnostic{
 				{
@@ -74,7 +75,7 @@ func resourceArgoCDRepositoryCertificatesCreate(ctx context.Context, d *schema.R
 			Upsert:       false,
 		},
 	)
-	tokenMutexConfiguration.Unlock()
+	sync.ConfigurationMutex.Unlock()
 
 	if err != nil {
 		return argoCDAPIError("create", "repository certificate", repoCertificate.ServerName, err)
@@ -152,13 +153,13 @@ func resourceArgoCDRepositoryCertificatesRead(ctx context.Context, d *schema.Res
 		return errorToDiagnostics("failed to parse certificate state", err)
 	}
 
-	tokenMutexConfiguration.RLock()
+	sync.ConfigurationMutex.RLock()
 	rcl, err := si.CertificateClient.ListCertificates(ctx, &certificate.RepositoryCertificateQuery{
 		HostNamePattern: serverName,
 		CertType:        certType,
 		CertSubType:     certSubType,
 	})
-	tokenMutexConfiguration.RUnlock()
+	sync.ConfigurationMutex.RUnlock()
 
 	if err != nil {
 		return argoCDAPIError("read", "repository certificate", serverName, err)
@@ -215,12 +216,12 @@ func resourceArgoCDRepositoryCertificatesDelete(ctx context.Context, d *schema.R
 		CertSubType:     certSubType,
 	}
 
-	tokenMutexConfiguration.Lock()
+	sync.ConfigurationMutex.Lock()
 	_, err = si.CertificateClient.DeleteCertificate(
 		ctx,
 		&query,
 	)
-	tokenMutexConfiguration.Unlock()
+	sync.ConfigurationMutex.Unlock()
 
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {

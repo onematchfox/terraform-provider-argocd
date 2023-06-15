@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/oboukili/terraform-provider-argocd/internal/provider"
+	"github.com/oboukili/terraform-provider-argocd/internal/sync"
 )
 
 func resourceArgoCDRepository() *schema.Resource {
@@ -40,7 +41,7 @@ func resourceArgoCDRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	if err := retry.RetryContext(ctx, d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
-		tokenMutexConfiguration.Lock()
+		sync.ConfigurationMutex.Lock()
 
 		var r *application.Repository
 
@@ -51,7 +52,7 @@ func resourceArgoCDRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 				Upsert: false,
 			},
 		)
-		tokenMutexConfiguration.Unlock()
+		sync.ConfigurationMutex.Unlock()
 
 		if err != nil {
 			// TODO: better way to detect ssh handshake failing ?
@@ -82,12 +83,12 @@ func resourceArgoCDRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 		return pluginSDKDiags(diags)
 	}
 
-	tokenMutexConfiguration.RLock()
+	sync.ConfigurationMutex.RLock()
 	r, err := si.RepositoryClient.Get(ctx, &repository.RepoQuery{
 		Repo:         d.Id(),
 		ForceRefresh: true,
 	})
-	tokenMutexConfiguration.RUnlock()
+	sync.ConfigurationMutex.RUnlock()
 
 	if err != nil {
 		// Repository has already been deleted in an out-of-band fashion
@@ -117,12 +118,12 @@ func resourceArgoCDRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 		return errorToDiagnostics(fmt.Sprintf("failed to expand repository %s", d.Id()), err)
 	}
 
-	tokenMutexConfiguration.Lock()
+	sync.ConfigurationMutex.Lock()
 	r, err := si.RepositoryClient.UpdateRepository(
 		ctx,
 		&repository.RepoUpdateRequest{Repo: repo},
 	)
-	tokenMutexConfiguration.Unlock()
+	sync.ConfigurationMutex.Unlock()
 
 	if err != nil {
 		return argoCDAPIError("update", "repository", repo.Repo, err)
@@ -152,12 +153,12 @@ func resourceArgoCDRepositoryDelete(ctx context.Context, d *schema.ResourceData,
 		return pluginSDKDiags(diags)
 	}
 
-	tokenMutexConfiguration.Lock()
+	sync.ConfigurationMutex.Lock()
 	_, err := si.RepositoryClient.DeleteRepository(
 		ctx,
 		&repository.RepoQuery{Repo: d.Id()},
 	)
-	tokenMutexConfiguration.Unlock()
+	sync.ConfigurationMutex.Unlock()
 
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {

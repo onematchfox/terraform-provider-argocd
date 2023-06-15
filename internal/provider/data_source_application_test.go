@@ -13,12 +13,7 @@ func TestAccArgoCDApplicationDataSource(t *testing.T) {
 		PreCheck: func() { testAccPreCheck(t); testAccPreCheckFeatureSupported(t, features.MultipleApplicationSources) },
 		Steps: []resource.TestStep{
 			{
-				ExternalProviders: map[string]resource.ExternalProvider{
-					"argocd": {
-						VersionConstraint: "~> 5.0",
-						Source:            "oboukili/argocd",
-					},
-				},
+				ExternalProviders: providerV5(),
 				Config: `
 resource "argocd_project" "foo" {
 	metadata {

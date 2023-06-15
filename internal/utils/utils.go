@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"github.com/cristalhq/jwt/v3"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
@@ -13,6 +14,14 @@ func OptionalInt64(value *int64) basetypes.Int64Value {
 	}
 
 	return types.Int64Value(*value)
+}
+
+func OptionalNumericDate(value *jwt.NumericDate) basetypes.Int64Value {
+	if value == nil {
+		return types.Int64Null()
+	}
+
+	return types.Int64Value(value.Unix())
 }
 
 func OptionalString(value *string) basetypes.StringValue {

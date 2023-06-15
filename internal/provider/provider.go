@@ -14,8 +14,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// Ensure ArgoCDProvider satisfies various provider interfaces.
-var _ provider.Provider = (*ArgoCDProvider)(nil)
+var (
+	// Ensure ArgoCDProvider satisfies various provider interfaces.
+	_ provider.Provider = (*ArgoCDProvider)(nil)
+)
 
 type ArgoCDProvider struct {
 	// version is set to the provider version on release, "dev" when the
@@ -254,6 +256,7 @@ func (p *ArgoCDProvider) Configure(ctx context.Context, req provider.ConfigureRe
 
 func (p *ArgoCDProvider) Resources(context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
+		NewAccountTokenResource,
 		NewGPGKeyResource,
 	}
 }
