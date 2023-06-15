@@ -258,6 +258,7 @@ func (p *ArgoCDProvider) Resources(context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewAccountTokenResource,
 		NewGPGKeyResource,
+		NewProjectTokenResource,
 	}
 }
 

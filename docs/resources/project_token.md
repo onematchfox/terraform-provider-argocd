@@ -42,13 +42,12 @@ resource "argocd_project_token" "secret" {
 - `description` (String) Description of the token.
 - `expires_in` (String) Duration before the token will expire. Valid time units are `ns`, `us` (or `µs`), `ms`, `s`, `m`, `h`. E.g. `12h`, `7d`. Default: No expiration.
 - `renew_after` (String) Duration to control token silent regeneration based on token age. Valid time units are `ns`, `us` (or `µs`), `ms`, `s`, `m`, `h`. If set, then the token will be regenerated if it is older than `renew_after`. I.e. if `currentDate - issued_at > renew_after`.
-- `renew_before` (String) Duration to control token silent regeneration based on remaining token lifetime. If `expires_in` is set, Terraform will regenerate the token if `expires_at - currentDate < renew_before`. Valid time units are `ns`, `us` (or `µs`), `ms`, `s`, `m`, `h`.
 
 ### Read-Only
 
-- `expires_at` (String) If `expires_in` is set, Unix timestamp upon which the token will expire.
-- `id` (String) The ID of this resource.
-- `issued_at` (String) Unix timestamp at which the token was issued.
+- `expires_at` (Number) If `expires_in` is set, Unix timestamp upon which the token will expire.
+- `id` (String) Token identifier
+- `issued_at` (Number) Unix timestamp at which the token was issued.
 - `jwt` (String, Sensitive) The raw JWT.
 
 

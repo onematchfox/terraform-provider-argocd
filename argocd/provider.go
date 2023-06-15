@@ -18,9 +18,6 @@ import (
 // Used to handle concurrent access to ArgoCD clusters
 var tokenMutexClusters = &sync.RWMutex{}
 
-// Used to handle concurrent access to each ArgoCD project
-var tokenMutexProjectMap = make(map[string]*sync.RWMutex, 0)
-
 func Provider() *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
@@ -144,7 +141,6 @@ func Provider() *schema.Provider {
 			"argocd_repository_certificate": resourceArgoCDRepositoryCertificates(),
 			"argocd_cluster":                resourceArgoCDCluster(),
 			"argocd_project":                resourceArgoCDProject(),
-			"argocd_project_token":          resourceArgoCDProjectToken(),
 			"argocd_repository":             resourceArgoCDRepository(),
 			"argocd_repository_credentials": resourceArgoCDRepositoryCredentials(),
 		},

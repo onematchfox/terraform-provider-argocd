@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	projectClient "github.com/argoproj/argo-cd/v2/pkg/apiclient/project"
@@ -13,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/oboukili/terraform-provider-argocd/internal/features"
 	"github.com/oboukili/terraform-provider-argocd/internal/provider"
+	"github.com/oboukili/terraform-provider-argocd/internal/sync"
 )
 
 func resourceArgoCDProject() *schema.Resource {
@@ -65,17 +65,15 @@ func resourceArgoCDProjectCreate(ctx context.Context, d *schema.ResourceData, me
 		}
 	}
 
-	if _, ok := tokenMutexProjectMap[projectName]; !ok {
-		tokenMutexProjectMap[projectName] = &sync.RWMutex{}
-	}
+	mutex := sync.GetProjectMutex(projectName)
 
-	tokenMutexProjectMap[projectName].Lock()
+	mutex.Lock()
 
 	p, err := si.ProjectClient.Get(ctx, &projectClient.ProjectQuery{
 		Name: projectName,
 	})
 	if err != nil && !strings.Contains(err.Error(), "NotFound") {
-		tokenMutexProjectMap[projectName].Unlock()
+		mutex.Unlock()
 
 		return errorToDiagnostics(fmt.Sprintf("failed to get existing project when creating project %s", projectName), err)
 	} else if p != nil {
@@ -97,7 +95,7 @@ func resourceArgoCDProjectCreate(ctx context.Context, d *schema.ResourceData, me
 		Upsert: false,
 	})
 
-	tokenMutexProjectMap[projectName].Unlock()
+	mutex.Unlock()
 
 	if err != nil {
 		return argoCDAPIError("create", "project", projectName, err)
@@ -122,16 +120,13 @@ func resourceArgoCDProjectRead(ctx context.Context, d *schema.ResourceData, meta
 	}
 
 	projectName := d.Id()
+	mutex := sync.GetProjectMutex(projectName)
 
-	if _, ok := tokenMutexProjectMap[projectName]; !ok {
-		tokenMutexProjectMap[projectName] = &sync.RWMutex{}
-	}
-
-	tokenMutexProjectMap[projectName].RLock()
+	mutex.RLock()
 	p, err := si.ProjectClient.Get(ctx, &projectClient.ProjectQuery{
 		Name: projectName,
 	})
-	tokenMutexProjectMap[projectName].RUnlock()
+	mutex.RUnlock()
 
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
@@ -172,25 +167,21 @@ func resourceArgoCDProjectUpdate(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	projectName := objectMeta.Name
-
-	if _, ok := tokenMutexProjectMap[projectName]; !ok {
-		tokenMutexProjectMap[projectName] = &sync.RWMutex{}
-	}
-
 	projectRequest := &projectClient.ProjectUpdateRequest{
 		Project: &application.AppProject{
 			ObjectMeta: objectMeta,
 			Spec:       spec,
 		},
 	}
+	mutex := sync.GetProjectMutex(projectName)
 
-	tokenMutexProjectMap[projectName].Lock()
+	mutex.Lock()
 
 	p, err := si.ProjectClient.Get(ctx, &projectClient.ProjectQuery{
 		Name: d.Id(),
 	})
 	if err != nil {
-		tokenMutexProjectMap[projectName].Unlock()
+		mutex.Unlock()
 
 		return errorToDiagnostics(fmt.Sprintf("failed to get existing project when updating project %s", projectName), err)
 	} else if p != nil {
@@ -210,7 +201,7 @@ func resourceArgoCDProjectUpdate(ctx context.Context, d *schema.ResourceData, me
 				// i == -1 means the role does not exist
 				// and was recently added within Terraform tf files
 				if i != -1 {
-					tokenMutexProjectMap[projectName].Unlock()
+					mutex.Unlock()
 
 					return errorToDiagnostics(fmt.Sprintf("project role %s could not be retrieved", r.Name), err)
 				}
@@ -222,7 +213,7 @@ func resourceArgoCDProjectUpdate(ctx context.Context, d *schema.ResourceData, me
 
 	_, err = si.ProjectClient.Update(ctx, projectRequest)
 
-	tokenMutexProjectMap[projectName].Unlock()
+	mutex.Unlock()
 
 	if err != nil {
 		return argoCDAPIError("update", "project", projectName, err)
@@ -238,14 +229,11 @@ func resourceArgoCDProjectDelete(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	projectName := d.Id()
+	mutex := sync.GetProjectMutex(projectName)
 
-	if _, ok := tokenMutexProjectMap[projectName]; !ok {
-		tokenMutexProjectMap[projectName] = &sync.RWMutex{}
-	}
-
-	tokenMutexProjectMap[projectName].Lock()
+	mutex.Lock()
 	_, err := si.ProjectClient.Delete(ctx, &projectClient.ProjectQuery{Name: projectName})
-	tokenMutexProjectMap[projectName].Unlock()
+	mutex.Unlock()
 
 	if err != nil && !strings.Contains(err.Error(), "NotFound") {
 		return argoCDAPIError("delete", "project", projectName, err)
