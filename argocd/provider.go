@@ -2,7 +2,6 @@ package argocd
 
 import (
 	"context"
-	"sync"
 
 	fwdiag "github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -14,9 +13,6 @@ import (
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
-
-// Used to handle concurrent access to ArgoCD clusters
-var tokenMutexClusters = &sync.RWMutex{}
 
 func Provider() *schema.Provider {
 	return &schema.Provider{
@@ -139,7 +135,6 @@ func Provider() *schema.Provider {
 			"argocd_application":            resourceArgoCDApplication(),
 			"argocd_application_set":        resourceArgoCDApplicationSet(),
 			"argocd_repository_certificate": resourceArgoCDRepositoryCertificates(),
-			"argocd_cluster":                resourceArgoCDCluster(),
 			"argocd_project":                resourceArgoCDProject(),
 			"argocd_repository":             resourceArgoCDRepository(),
 			"argocd_repository_credentials": resourceArgoCDRepositoryCredentials(),

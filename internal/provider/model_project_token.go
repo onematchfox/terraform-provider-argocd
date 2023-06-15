@@ -109,10 +109,10 @@ func newProjectToken(m projectTokenModel, t string) (*projectTokenModel, diag.Di
 		Project:     m.Project,
 		Role:        m.Role,
 		Description: m.Description,
-		ExpiresAt:   utils.OptionalNumericDate(claims.ExpiresAt),
+		ExpiresAt:   utils.OptionalNumericDateValue(claims.ExpiresAt),
 		ExpiresIn:   m.ExpiresIn,
 		ID:          types.StringValue(claims.ID),
-		IssuedAt:    utils.OptionalNumericDate(claims.IssuedAt),
+		IssuedAt:    utils.OptionalNumericDateValue(claims.IssuedAt),
 		JWT:         types.StringValue(token.String()),
 		RenewAfter:  m.RenewAfter,
 	}, diags

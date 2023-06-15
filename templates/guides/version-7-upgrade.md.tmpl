@@ -20,6 +20,7 @@ changes you don't expect or deprecation notices.
 - [Terraform Provider for ArgoCD Version 7 Upgrade Guide](#terraform-provider-for-argocd-version-7-upgrade-guide)
   - [Table of Contents](#table-of-contents)
   - [resource/argocd\_account\_token](#resourceargocd_account_token)
+  - [resource/argocd\_cluster](#resourceargocd_cluster)
   - [resource/argocd\_project\_token](#resourceargocd_project_token)
 
 ## resource/argocd_account_token
@@ -33,6 +34,34 @@ Replace `renew_before` attribute with `renew_after`.
   being run in the window determined by `expires_at - renew_before`. In
   comparison, `renew_after` does not require tokens to expire, although
   `expires_in` can be set if this behavior is desired.
+
+## resource/argocd_cluster
+
+`metadata` block has been merged into main cluster definition to align with
+types exposed by ArgoCD.
+
+TODO: Changed to using attribute syntax instead of blocks
+``` tf
+resource "argocd_cluster" "eks" {
+  ...
+
+  config = {
+    aws_auth_config = {
+      ...
+    }
+
+    exec_provider_config = {
+      ...
+    }
+
+    tls_client_config = {
+      ...
+    }
+  }
+}
+``` 
+
+Shared is now int64
 
 ## resource/argocd_project_token
 

@@ -3,6 +3,11 @@ package sync
 import "sync"
 
 var (
+	// ClustersMutex is used to handle concurrent access to ArgoCD clusters
+	// which are stored in `Secret` resources with the label
+	// `argocd.argoproj.io/secret-type: cluster`
+	ClustersMutex = &sync.RWMutex{}
+
 	// ConfigurationMutex is used to handle concurrent access to common ArgoCD
 	// configuration stored in the `argocd-cm` ConfigMap resource.
 	ConfigurationMutex = &sync.RWMutex{}

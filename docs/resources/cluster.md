@@ -17,10 +17,10 @@ Manages [clusters](https://argo-cd.readthedocs.io/en/stable/operator-manual/decl
 resource "argocd_cluster" "kubernetes" {
   server = "https://1.2.3.4:12345"
 
-  config {
+  config = {
     bearer_token = "eyJhbGciOiJSUzI..."
 
-    tls_client_config {
+    tls_client_config = {
       ca_data = file("path/to/ca.pem")
       // ca_data = "-----BEGIN CERTIFICATE-----\nfoo\nbar\n-----END CERTIFICATE-----"
       // ca_data = base64decode("LS0tLS1CRUdJTiBDRVJUSUZ...")
@@ -88,9 +88,9 @@ resource "argocd_cluster" "gke" {
   server = format("https://%s", data.google_container_cluster.cluster.endpoint)
   name   = "gke"
 
-  config {
+  config = {
     bearer_token = data.kubernetes_secret.argocd_manager.data["token"]
-    tls_client_config {
+    tls_client_config = {
       ca_data = base64decode(data.google_container_cluster.cluster.master_auth.0.cluster_ca_certificate)
     }
   }
@@ -106,12 +106,12 @@ resource "argocd_cluster" "eks" {
   name       = "eks"
   namespaces = ["default", "optional"]
 
-  config {
-    aws_auth_config {
+  config = {
+    aws_auth_config = {
       cluster_name = "myekscluster"
       role_arn     = "arn:aws:iam::<123456789012>:role/<role-name>"
     }
-    tls_client_config {
+    tls_client_config = {
       ca_data = data.aws_eks_cluster.cluster.certificate_authority[0].data
     }
   }
@@ -123,35 +123,36 @@ resource "argocd_cluster" "eks" {
 
 ### Required
 
-- `config` (Block List, Min: 1, Max: 1) Cluster information for connecting to a cluster. (see [below for nested schema](#nestedblock--config))
+- `config` (Attributes) Cluster information for connecting to a cluster. (see [below for nested schema](#nestedatt--config))
 
 ### Optional
 
-- `metadata` (Block List, Max: 2) Standard cluster secret's metadata. More info: https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#metadata (see [below for nested schema](#nestedblock--metadata))
+- `annotations` (Map of String) An unstructured key value map stored with the cluster secret that may be used to store arbitrary metadata. More info: http://kubernetes.io/docs/user-guide/annotations
+- `labels` (Map of String) Map of string keys and values that can be used to organize and categorize (scope and select) the cluster secret. May match selectors of replication controllers and services. More info: http://kubernetes.io/docs/user-guide/labels
 - `name` (String) Name of the cluster. If omitted, will use the server address.
-- `namespaces` (List of String) List of namespaces which are accessible in that cluster. Cluster level resources would be ignored if namespace list is not empty.
+- `namespaces` (Set of String) List of namespaces which are accessible in that cluster. Cluster level resources would be ignored if namespace list is not empty.
 - `project` (String) Reference between project and cluster that allow you automatically to be added as item inside Destinations project entity. More info: https://argo-cd.readthedocs.io/en/stable/user-guide/projects/#project-scoped-repositories-and-clusters.
 - `server` (String) Server is the API server URL of the Kubernetes cluster.
-- `shard` (String) Optional shard number. Calculated on the fly by the application controller if not specified.
+- `shard` (Number) Optional shard number. Calculated on the fly by the application controller if not specified.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `info` (List of Object) Information about cluster cache and state. (see [below for nested schema](#nestedatt--info))
+- `id` (String) Token identifier
+- `info` (Attributes) Information about cluster cache and state. (see [below for nested schema](#nestedatt--info))
 
-<a id="nestedblock--config"></a>
+<a id="nestedatt--config"></a>
 ### Nested Schema for `config`
 
 Optional:
 
-- `aws_auth_config` (Block List) (see [below for nested schema](#nestedblock--config--aws_auth_config))
+- `aws_auth_config` (Attributes) (see [below for nested schema](#nestedatt--config--aws_auth_config))
 - `bearer_token` (String, Sensitive) Server requires Bearer authentication. The client will not attempt to use refresh tokens for an OAuth2 flow.
-- `exec_provider_config` (Block List, Max: 1) Configuration for an exec provider used to call an external command to perform cluster authentication See: https://godoc.org/k8s.io/client-go/tools/clientcmd/api#ExecConfig. (see [below for nested schema](#nestedblock--config--exec_provider_config))
+- `exec_provider_config` (Attributes) Configuration for an exec provider used to call an external command to perform cluster authentication See: https://godoc.org/k8s.io/client-go/tools/clientcmd/api#ExecConfig. (see [below for nested schema](#nestedatt--config--exec_provider_config))
 - `password` (String, Sensitive) Password for servers that require Basic authentication.
-- `tls_client_config` (Block List, Max: 1) Settings to enable transport layer security when connecting to the cluster. (see [below for nested schema](#nestedblock--config--tls_client_config))
+- `tls_client_config` (Attributes) Settings to enable transport layer security when connecting to the cluster. (see [below for nested schema](#nestedatt--config--tls_client_config))
 - `username` (String) Username for servers that require Basic authentication.
 
-<a id="nestedblock--config--aws_auth_config"></a>
+<a id="nestedatt--config--aws_auth_config"></a>
 ### Nested Schema for `config.aws_auth_config`
 
 Optional:
@@ -160,7 +161,7 @@ Optional:
 - `role_arn` (String) IAM role ARN. If set then AWS IAM Authenticator assume a role to perform cluster operations instead of the default AWS credential provider chain.
 
 
-<a id="nestedblock--config--exec_provider_config"></a>
+<a id="nestedatt--config--exec_provider_config"></a>
 ### Nested Schema for `config.exec_provider_config`
 
 Optional:
@@ -172,7 +173,7 @@ Optional:
 - `install_hint` (String) This text is shown to the user when the executable doesn't seem to be present
 
 
-<a id="nestedblock--config--tls_client_config"></a>
+<a id="nestedatt--config--tls_client_config"></a>
 ### Nested Schema for `config.tls_client_config`
 
 Optional:
@@ -185,31 +186,22 @@ Optional:
 
 
 
-<a id="nestedblock--metadata"></a>
-### Nested Schema for `metadata`
-
-Optional:
-
-- `annotations` (Map of String) An unstructured key value map stored with the cluster secret that may be used to store arbitrary metadata. More info: http://kubernetes.io/docs/user-guide/annotations
-- `labels` (Map of String) Map of string keys and values that can be used to organize and categorize (scope and select) the cluster secret. May match selectors of replication controllers and services. More info: http://kubernetes.io/docs/user-guide/labels
-
-
 <a id="nestedatt--info"></a>
 ### Nested Schema for `info`
 
 Read-Only:
 
-- `applications_count` (String)
-- `connection_state` (List of Object) (see [below for nested schema](#nestedobjatt--info--connection_state))
-- `server_version` (String)
+- `applications_count` (Number) Number of applications managed by Argo CD on the cluster.
+- `connection_state` (Attributes) Information about the connection to the cluster. (see [below for nested schema](#nestedatt--info--connection_state))
+- `server_version` (String) Kubernetes version of the cluster.
 
-<a id="nestedobjatt--info--connection_state"></a>
+<a id="nestedatt--info--connection_state"></a>
 ### Nested Schema for `info.connection_state`
 
 Read-Only:
 
-- `message` (String)
-- `status` (String)
+- `message` (String) Human readable information about the connection status.
+- `status` (String) Current status indicator for the connection.
 
 ## Import
 

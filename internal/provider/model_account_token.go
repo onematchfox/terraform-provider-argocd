@@ -91,10 +91,10 @@ func newAccountToken(m accountTokenModel, t string) (*accountTokenModel, diag.Di
 
 	return &accountTokenModel{
 		Account:    m.Account,
-		ExpiresAt:  utils.OptionalNumericDate(claims.ExpiresAt),
+		ExpiresAt:  utils.OptionalNumericDateValue(claims.ExpiresAt),
 		ExpiresIn:  m.ExpiresIn,
 		ID:         types.StringValue(claims.ID),
-		IssuedAt:   utils.OptionalNumericDate(claims.IssuedAt),
+		IssuedAt:   utils.OptionalNumericDateValue(claims.IssuedAt),
 		JWT:        types.StringValue(token.String()),
 		RenewAfter: m.RenewAfter,
 	}, diags

@@ -8,7 +8,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func OptionalInt64(value *int64) basetypes.Int64Value {
+func OptionalByteSliceValue(value []byte) basetypes.StringValue {
+	if len(value) == 0 {
+		return types.StringNull()
+	}
+
+	return types.StringValue(string(value))
+}
+
+func OptionalInt64Value(value *int64) basetypes.Int64Value {
 	if value == nil {
 		return types.Int64Null()
 	}
@@ -16,7 +24,16 @@ func OptionalInt64(value *int64) basetypes.Int64Value {
 	return types.Int64Value(*value)
 }
 
-func OptionalNumericDate(value *jwt.NumericDate) basetypes.Int64Value {
+func OptionalInt64(value basetypes.Int64Value) *int64 {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+
+	v := value.ValueInt64()
+	return &v
+}
+
+func OptionalNumericDateValue(value *jwt.NumericDate) basetypes.Int64Value {
 	if value == nil {
 		return types.Int64Null()
 	}
@@ -24,7 +41,15 @@ func OptionalNumericDate(value *jwt.NumericDate) basetypes.Int64Value {
 	return types.Int64Value(value.Unix())
 }
 
-func OptionalString(value *string) basetypes.StringValue {
+func OptionalStringValue(value string) basetypes.StringValue {
+	if value == "" {
+		return types.StringNull()
+	}
+
+	return types.StringValue(value)
+}
+
+func OptionalStringPointerValue(value *string) basetypes.StringValue {
 	if value == nil {
 		return types.StringNull()
 	}
@@ -32,7 +57,7 @@ func OptionalString(value *string) basetypes.StringValue {
 	return types.StringValue(*value)
 }
 
-func OptionalTimeString(value *metav1.Time) basetypes.StringValue {
+func OptionalTimeStringValue(value *metav1.Time) basetypes.StringValue {
 	if value == nil {
 		return types.StringNull()
 	}
@@ -60,3 +85,5 @@ func MapMap[T comparable, U any, V any](ss map[T]U, fn func(U) V) map[T]V {
 
 	return ss2
 }
+
+func ValueString(s basetypes.StringValue) string { return s.ValueString() }

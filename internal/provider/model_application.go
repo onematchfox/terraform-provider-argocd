@@ -61,7 +61,7 @@ func newApplicationSpec(as v1alpha1.ApplicationSpec) *applicationSpec {
 		IgnoreDifferences:    newApplicationResourceIgnoreDifferences(as.IgnoreDifferences),
 		Infos:                newApplicationInfos(as.Info),
 		Project:              types.StringValue(as.Project),
-		RevisionHistoryLimit: utils.OptionalInt64(as.RevisionHistoryLimit),
+		RevisionHistoryLimit: utils.OptionalInt64Value(as.RevisionHistoryLimit),
 		SyncPolicy:           newApplicationSyncPolicy(as.SyncPolicy),
 	}
 
@@ -834,7 +834,7 @@ func newApplicationSourcePluginParameters(aspps v1alpha1.ApplicationSourcePlugin
 			Array:  pie.Map(v.Array, types.StringValue),
 			Map:    utils.MapMap(v.Map, types.StringValue),
 			Name:   types.StringValue(v.Name),
-			String: utils.OptionalString(v.String_),
+			String: utils.OptionalStringPointerValue(v.String_),
 		}
 	}
 
@@ -990,7 +990,7 @@ func newApplicationBackoff(b *v1alpha1.Backoff) *applicationBackoff {
 
 	return &applicationBackoff{
 		Duration:    types.StringValue(b.Duration),
-		Factor:      utils.OptionalInt64(b.Factor),
+		Factor:      utils.OptionalInt64Value(b.Factor),
 		MaxDuration: types.StringValue(b.MaxDuration),
 	}
 }
@@ -1074,7 +1074,7 @@ func newApplicationConditions(acs []v1alpha1.ApplicationCondition) []application
 
 	for i, v := range acs {
 		cs[i] = applicationCondition{
-			LastTransitionTime: utils.OptionalTimeString(v.LastTransitionTime),
+			LastTransitionTime: utils.OptionalTimeStringValue(v.LastTransitionTime),
 			Message:            types.StringValue(v.Message),
 			Type:               types.StringValue(v.Type),
 		}
@@ -1163,7 +1163,7 @@ func newApplicationOperationState(os *v1alpha1.OperationState) *applicationOpera
 	}
 
 	return &applicationOperationState{
-		FinishedAt: utils.OptionalTimeString(os.FinishedAt),
+		FinishedAt: utils.OptionalTimeStringValue(os.FinishedAt),
 		Message:    types.StringValue(os.Message),
 		Phase:      types.StringValue(string(os.Phase)),
 		RetryCount: types.Int64Value(os.RetryCount),

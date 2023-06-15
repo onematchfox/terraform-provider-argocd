@@ -2,10 +2,10 @@
 resource "argocd_cluster" "kubernetes" {
   server = "https://1.2.3.4:12345"
 
-  config {
+  config = {
     bearer_token = "eyJhbGciOiJSUzI..."
 
-    tls_client_config {
+    tls_client_config = {
       ca_data = file("path/to/ca.pem")
       // ca_data = "-----BEGIN CERTIFICATE-----\nfoo\nbar\n-----END CERTIFICATE-----"
       // ca_data = base64decode("LS0tLS1CRUdJTiBDRVJUSUZ...")
@@ -73,9 +73,9 @@ resource "argocd_cluster" "gke" {
   server = format("https://%s", data.google_container_cluster.cluster.endpoint)
   name   = "gke"
 
-  config {
+  config = {
     bearer_token = data.kubernetes_secret.argocd_manager.data["token"]
-    tls_client_config {
+    tls_client_config = {
       ca_data = base64decode(data.google_container_cluster.cluster.master_auth.0.cluster_ca_certificate)
     }
   }
@@ -91,12 +91,12 @@ resource "argocd_cluster" "eks" {
   name       = "eks"
   namespaces = ["default", "optional"]
 
-  config {
-    aws_auth_config {
+  config = {
+    aws_auth_config = {
       cluster_name = "myekscluster"
       role_arn     = "arn:aws:iam::<123456789012>:role/<role-name>"
     }
-    tls_client_config {
+    tls_client_config = {
       ca_data = data.aws_eks_cluster.cluster.certificate_authority[0].data
     }
   }
