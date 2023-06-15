@@ -259,5 +259,7 @@ func (p *ArgoCDProvider) Resources(context.Context) []func() resource.Resource {
 }
 
 func (p *ArgoCDProvider) DataSources(context.Context) []func() datasource.DataSource {
-	return nil
+	return []func() datasource.DataSource{
+		NewArgoCDApplicationDataSource,
+	}
 }
