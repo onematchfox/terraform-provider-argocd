@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/argoproj-labs/terraform-provider-argocd/internal/provider"
+	"github.com/argoproj-labs/terraform-provider-argocd/internal/sync"
 	"github.com/argoproj/argo-cd/v3/pkg/apiclient/repository"
 	application "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -40,7 +41,7 @@ func resourceArgoCDRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	if err := retry.RetryContext(ctx, d.Timeout(schema.TimeoutCreate), func() *retry.RetryError {
-		tokenMutexConfiguration.Lock()
+		sync.ConfigurationMutex.Lock()
 
 		var r *application.Repository
 
@@ -51,7 +52,7 @@ func resourceArgoCDRepositoryCreate(ctx context.Context, d *schema.ResourceData,
 				Upsert: false,
 			},
 		)
-		tokenMutexConfiguration.Unlock()
+		sync.ConfigurationMutex.Unlock()
 
 		if err != nil {
 			// TODO: better way to detect ssh handshake failing ?
@@ -82,13 +83,13 @@ func resourceArgoCDRepositoryRead(ctx context.Context, d *schema.ResourceData, m
 		return pluginSDKDiags(diags)
 	}
 
-	tokenMutexConfiguration.RLock()
+	sync.ConfigurationMutex.RLock()
 	r, err := si.RepositoryClient.Get(ctx, &repository.RepoQuery{
 		Repo:         d.Id(),
 		AppProject:   d.State().Attributes["project"],
 		ForceRefresh: true,
 	})
-	tokenMutexConfiguration.RUnlock()
+	sync.ConfigurationMutex.RUnlock()
 
 	if err != nil {
 		// Repository has already been deleted in an out-of-band fashion
@@ -118,12 +119,12 @@ func resourceArgoCDRepositoryUpdate(ctx context.Context, d *schema.ResourceData,
 		return errorToDiagnostics(fmt.Sprintf("failed to expand repository %s", d.Id()), err)
 	}
 
-	tokenMutexConfiguration.Lock()
+	sync.ConfigurationMutex.Lock()
 	r, err := si.RepositoryClient.UpdateRepository(
 		ctx,
 		&repository.RepoUpdateRequest{Repo: repo},
 	)
-	tokenMutexConfiguration.Unlock()
+	sync.ConfigurationMutex.Unlock()
 
 	if err != nil {
 		return argoCDAPIError("update", "repository", repo.Repo, err)
@@ -153,12 +154,12 @@ func resourceArgoCDRepositoryDelete(ctx context.Context, d *schema.ResourceData,
 		return pluginSDKDiags(diags)
 	}
 
-	tokenMutexConfiguration.Lock()
+	sync.ConfigurationMutex.Lock()
 	_, err := si.RepositoryClient.DeleteRepository(
 		ctx,
 		&repository.RepoQuery{Repo: d.Id(), AppProject: d.State().Attributes["project"]},
 	)
-	tokenMutexConfiguration.Unlock()
+	sync.ConfigurationMutex.Unlock()
 
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {

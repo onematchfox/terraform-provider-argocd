@@ -3,7 +3,7 @@ resource "argocd_account_token" "admin" {
 }
 
 resource "argocd_account_token" "test" {
-  account      = "test"
-  expires_in   = "1m"
-  renew_before = "45s"
+  account     = "test"
+  expires_in  = "1m"
+  renew_after = "15s"
 }

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/argoproj-labs/terraform-provider-argocd/internal/provider"
+	"github.com/argoproj-labs/terraform-provider-argocd/internal/sync"
 	"github.com/argoproj/argo-cd/v3/pkg/apiclient/repocreds"
 	application "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -40,7 +41,7 @@ func resourceArgoCDRepositoryCredentialsCreate(ctx context.Context, d *schema.Re
 		return errorToDiagnostics("failed to expand repository credentials", err)
 	}
 
-	tokenMutexConfiguration.Lock()
+	sync.ConfigurationMutex.Lock()
 	rc, err := si.RepoCredsClient.CreateRepositoryCredentials(
 		ctx,
 		&repocreds.RepoCredsCreateRequest{
@@ -48,7 +49,7 @@ func resourceArgoCDRepositoryCredentialsCreate(ctx context.Context, d *schema.Re
 			Upsert: false,
 		},
 	)
-	tokenMutexConfiguration.Unlock()
+	sync.ConfigurationMutex.Unlock()
 
 	if err != nil {
 		return argoCDAPIError("create", "repository credentials", repoCreds.URL, err)
@@ -65,11 +66,11 @@ func resourceArgoCDRepositoryCredentialsRead(ctx context.Context, d *schema.Reso
 		return pluginSDKDiags(diags)
 	}
 
-	tokenMutexConfiguration.RLock()
+	sync.ConfigurationMutex.RLock()
 	rcl, err := si.RepoCredsClient.ListRepositoryCredentials(ctx, &repocreds.RepoCredsQuery{
 		Url: d.Id(),
 	})
-	tokenMutexConfiguration.RUnlock()
+	sync.ConfigurationMutex.RUnlock()
 
 	if err != nil {
 		return argoCDAPIError("read", "repository credentials", d.Id(), err)
@@ -108,13 +109,14 @@ func resourceArgoCDRepositoryCredentialsUpdate(ctx context.Context, d *schema.Re
 		return errorToDiagnostics(fmt.Sprintf("failed to expand repository credentials %s", d.Id()), err)
 	}
 
-	tokenMutexConfiguration.Lock()
+	sync.ConfigurationMutex.Lock()
 	r, err := si.RepoCredsClient.UpdateRepositoryCredentials(
 		ctx,
 		&repocreds.RepoCredsUpdateRequest{
-			Creds: repoCreds},
+			Creds: repoCreds,
+		},
 	)
-	tokenMutexConfiguration.Unlock()
+	sync.ConfigurationMutex.Unlock()
 
 	if err != nil {
 		return argoCDAPIError("update", "repository credentials", repoCreds.URL, err)
@@ -131,12 +133,12 @@ func resourceArgoCDRepositoryCredentialsDelete(ctx context.Context, d *schema.Re
 		return pluginSDKDiags(diags)
 	}
 
-	tokenMutexConfiguration.Lock()
+	sync.ConfigurationMutex.Lock()
 	_, err := si.RepoCredsClient.DeleteRepositoryCredentials(
 		ctx,
 		&repocreds.RepoCredsDeleteRequest{Url: d.Id()},
 	)
-	tokenMutexConfiguration.Unlock()
+	sync.ConfigurationMutex.Unlock()
 
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") {
